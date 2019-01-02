@@ -89,9 +89,9 @@ And when `status` has value `'PENDING', it would yield:
 When having support for multiple filtering values, it should work like this:
 
 ```typescript
-fetchOrders(status?: string[]): Orders[] {
+fetchOrders(status: string[]): Orders[] {
     pg.manyOrNone(
-        ...dysequel(
+        ...dynsequel(
             'SELECT * FROM orders',
             ['status = ?', status]
         )
@@ -103,6 +103,12 @@ When `status` array is `['PENDING', 'CANCELLED']` it should yield:
 
 ```
 ['SELECT * FROM orders WHERE (status = ? OR status = ?)', ['PENDING', 'CANCELLED']]
+````
+
+When `status` array is `[]` it should yield:
+
+```
+['SELECT * FROM orders', []]
 ````
 
 Get it? Now all we need is an implementation :P
