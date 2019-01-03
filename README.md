@@ -1,8 +1,8 @@
 # DYNSEQUEL
 
-> A new way of constructing higly dynamic SQL Clauses.
+> *A new way of constructing highly dynamic SQL Clauses.*
 >
-> Builder, but better.
+> *It's a builder, but not a builder.*
 
 ## The Problem
 
