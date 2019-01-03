@@ -136,4 +136,13 @@ describe('dynsequel.ts', () => {
             ]
         })).toEqual(['SELECT * FROM foo WHERE bar = ?', ['foo']]);
     });
+
+    it('Should support mapping array of values to OR block', () => {
+        expect(dynsequel({
+            sql: 'SELECT * FROM foo',
+            constraints: [
+                ['bar = ?', [1, 2]]
+            ]
+        })).toEqual(['SELECT * FROM foo WHERE (bar = ? OR bar = ?)', [1, 2]]);
+    });
 });

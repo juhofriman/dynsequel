@@ -14,7 +14,11 @@ function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string 
         if(typeof(constraint) === 'string') {
             return constraint;
         }
-        return constraint[0];
+        const [clause, value] = constraint;
+        if(value instanceof Array) {
+            return '(' + value.map(() => clause).join(' OR ') + ')';
+        }
+        return clause;
     }).join(' AND ');
 }
 
@@ -32,20 +36,27 @@ export function dynsequel(params: DynsequelDSL): [string, any[]] {
             return true;
         }
         const [_, value] = constraint;
+        if(value instanceof Array) {
+            //
+        }
         return value !== null && value !== undefined;
     });
     return [appendConstraintsToSQL(params.sql, evaluatedConstraints),
         evaluatedConstraints
             .filter(constraint => typeof(constraint) !== 'string')
-            .map((constraint) => {
+            .reduce((acc, constraint) => {
                 if(typeof(constraint) === 'string') {
-                    return null;
+                    return acc;
                 }
                 const [_, value, mapping] = constraint;
-                if (mapping) {
-                    return mapping[value];
+                if(value instanceof Array) {
+                    acc.push(...value);
+                } else if (mapping) {
+                    acc.push(mapping[value]);
+                } else {
+                    acc.push(value)
                 }
-                return value;
-            })
+                return acc;
+            }, [])
     ]
 }
