@@ -30,6 +30,16 @@ describe('dynsequel.ts', () => {
                 ['bar.baz = ?', 'fozzez']
             ]
         });
+
+        // OR Blocks, this does not work right now
+        const ac = dynsequel({
+            sql: 'select * from foo',
+            constraints: [
+                ['type = ?', ['PENDING', 'FINISHED']]
+            ]
+        });
+        // Should yield
+        // select * from foo WHERE (type = ? OR type = ?) ['PENDING', 'FINISHED*]
     });
 
     it('Should support simple SQL without arguments', () => {

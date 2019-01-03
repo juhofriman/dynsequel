@@ -4,7 +4,7 @@ interface DynsequelDSL {
     end?: string;
 }
 
-type Constraint = [string, any?, any?] | string;
+type Constraint = [string, any, any?] | string;
 
 function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string {
     if (constraints.length === 0) {
@@ -46,5 +46,6 @@ export function dynsequel(params: DynsequelDSL): [string, any[]] {
                     return mapping[value];
                 }
                 return value;
-            })]
+            })
+    ]
 }
