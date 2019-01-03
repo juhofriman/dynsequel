@@ -112,3 +112,15 @@ When `status` array is `[]` it should yield:
 ````
 
 Get it? Now all we need is an implementation :P
+
+## Development
+
+Currently, it's just possible to run tests.
+
+```bash
+yarn install
+```
+
+```bash
+yarn test
+```

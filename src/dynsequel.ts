@@ -1,20 +1,50 @@
 interface DynsequelDSL {
     sql: string;
+    constraints?: Constraint[];
+    end?: string;
 }
 
-type Constraint = [string, any];
+type Constraint = [string, any?, any?] | string;
 
 function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string {
-    if(constraints.length === 0) {
+    if (constraints.length === 0) {
         return sql;
     }
-    return sql + ' WHERE ' + constraints.map(c => c[0]).join(' AND ');
+    return sql + ' WHERE ' + constraints.map(constraint => {
+        if(typeof(constraint) === 'string') {
+            return constraint;
+        }
+        return constraint[0];
+    }).join(' AND ');
 }
 
-export function dynsequel(params: DynsequelDSL, ...constraints: Constraint[]): [string, any[]] {
-    const evaluatedConstraints = constraints.filter(([sql, value]) => {
+function defaults(params: DynsequelDSL): DynsequelDSL {
+    if (!params.constraints) {
+        params.constraints = [];
+    }
+    return params;
+}
+
+export function dynsequel(params: DynsequelDSL): [string, any[]] {
+    params = defaults(params);
+    const evaluatedConstraints = params.constraints.filter((constraint) => {
+        if (typeof(constraint) === 'string') {
+            return true;
+        }
+        const [_, value] = constraint;
         return value !== null && value !== undefined;
     });
     return [appendConstraintsToSQL(params.sql, evaluatedConstraints),
-        evaluatedConstraints.map(c => c[1])]
+        evaluatedConstraints
+            .filter(constraint => typeof(constraint) !== 'string')
+            .map((constraint) => {
+                if(typeof(constraint) === 'string') {
+                    return null;
+                }
+                const [_, value, mapping] = constraint;
+                if (mapping) {
+                    return mapping[value];
+                }
+                return value;
+            })]
 }
