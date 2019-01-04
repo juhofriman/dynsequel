@@ -1,10 +1,74 @@
-interface DynsequelDSL {
+
+interface DynsequelDSLSelect {
     sql: string;
     constraints?: Constraint[];
     end?: string;
 }
 
+function selectDefaults(params: DynsequelDSLSelect): DynsequelDSLSelect {
+    if(!params.constraints) {
+        params.constraints = [];
+    }
+    return params;
+}
+
+interface DynsequelDSLUpdate {
+    sql: string;
+    set: Constraint[];
+    constraints?: Constraint[];
+    end?: string;
+}
+
+function updateDefaults(params: DynsequelDSLUpdate): DynsequelDSLUpdate {
+    if(!params.constraints) {
+        params.constraints = [];
+    }
+    return params;
+}
+
+interface DynsequelDSLInsert {
+    sql: string;
+    values: Constraint[];
+    end?: string;
+}
+
+function insertDefaults(params: DynsequelDSLInsert): DynsequelDSLInsert {
+    return params;
+}
+
 type Constraint = [string, any, any?] | string;
+
+function filterConstraints(constraints: Constraint[]): Constraint[] {
+    return constraints.filter((constraint) => {
+        if (typeof(constraint) === 'string') {
+            return true;
+        }
+        const [_, value] = constraint;
+        if(value instanceof Array) {
+            //
+        }
+        return value !== null && value !== undefined;
+    });
+}
+
+function collectConstrainValues(constraints: Constraint[]): any[] {
+    return constraints
+        .filter(constraint => typeof(constraint) !== 'string')
+        .reduce((acc, constraint) => {
+            if(typeof(constraint) === 'string') {
+                return acc;
+            }
+            const [_, value, mapping] = constraint;
+            if(value instanceof Array) {
+                acc.push(...value);
+            } else if (mapping) {
+                acc.push(mapping[value]);
+            } else {
+                acc.push(value)
+            }
+            return acc;
+        }, [])
+}
 
 function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string {
     if (constraints.length === 0) {
@@ -22,41 +86,42 @@ function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string 
     }).join(' AND ');
 }
 
-function defaults(params: DynsequelDSL): DynsequelDSL {
-    if (!params.constraints) {
-        params.constraints = [];
-    }
-    return params;
+export function insert(params: DynsequelDSLInsert): [string, any[]] {
+    params = insertDefaults(params);
+    const sqlkeys = params.values.map(constraint => {
+        if(typeof(constraint) === 'string') {
+            // this can't work here
+            return constraint;
+        }
+        return constraint[0];
+    }).join(', ');
+    const placeholders = params.values.map(_ => '?').join(', ');
+    return [
+        params.sql + '(' + sqlkeys + ') VALUES(' + placeholders + ')',
+        collectConstrainValues(params.values)
+    ];
 }
 
-export function dynsequel(params: DynsequelDSL): [string, any[]] {
-    params = defaults(params);
-    const evaluatedConstraints = params.constraints.filter((constraint) => {
-        if (typeof(constraint) === 'string') {
-            return true;
+export function update(params: DynsequelDSLUpdate): [string, any[]] {
+    params = updateDefaults(params);
+    const evaluatedConstraints = filterConstraints(params.constraints);
+    const sql = params.sql + ' SET ' + params.set.map((constraint) => {
+        if(typeof(constraint) === 'string') {
+            return constraint;
         }
-        const [_, value] = constraint;
-        if(value instanceof Array) {
-            //
-        }
-        return value !== null && value !== undefined;
-    });
-    return [appendConstraintsToSQL(params.sql, evaluatedConstraints),
-        evaluatedConstraints
-            .filter(constraint => typeof(constraint) !== 'string')
-            .reduce((acc, constraint) => {
-                if(typeof(constraint) === 'string') {
-                    return acc;
-                }
-                const [_, value, mapping] = constraint;
-                if(value instanceof Array) {
-                    acc.push(...value);
-                } else if (mapping) {
-                    acc.push(mapping[value]);
-                } else {
-                    acc.push(value)
-                }
-                return acc;
-            }, [])
-    ]
+        return constraint[0];
+    }).join(', ');
+    return [
+        appendConstraintsToSQL(sql, evaluatedConstraints),
+        collectConstrainValues(params.set).concat(collectConstrainValues(evaluatedConstraints))
+    ];
+}
+
+export function select(params: DynsequelDSLSelect): [string, any[]] {
+    params = selectDefaults(params);
+    const evaluatedConstraints = filterConstraints(params.constraints);
+    return [
+        appendConstraintsToSQL(params.sql, evaluatedConstraints),
+        collectConstrainValues(evaluatedConstraints)
+    ];
 }

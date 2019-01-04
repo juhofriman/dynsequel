@@ -1,10 +1,10 @@
-import {dynsequel} from "./dynsequel";
+import {select, update, insert} from "./dynsequel";
 
-describe('dynsequel.ts', () => {
+describe('dynsequel/select', () => {
 
     it('Should support different more complex use cases', () => {
         // Value mapping
-        dynsequel({
+        select({
             sql: "SELECT * FROM bar",
             constraints: [
                 ['bar = ?', 'JEE', {
@@ -16,7 +16,7 @@ describe('dynsequel.ts', () => {
         });
 
         // Subqueries
-        dynsequel({
+        select({
             sql: 'select * from foo',
             constraints: [
                 ['bar in (select id from baz where class = ?)', 'fozzez']
@@ -24,32 +24,30 @@ describe('dynsequel.ts', () => {
         });
 
         // Joins
-        dynsequel({
+        select({
             sql: 'select * from foo join bar on foo.a = bar.a',
             constraints: [
                 ['bar.baz = ?', 'fozzez']
             ]
         });
 
-        // OR Blocks, this does not work right now
-        const ac = dynsequel({
+        // OR Blocks for collection
+        select({
             sql: 'select * from foo',
             constraints: [
                 ['type = ?', ['PENDING', 'FINISHED']]
             ]
         });
-        // Should yield
-        // select * from foo WHERE (type = ? OR type = ?) ['PENDING', 'FINISHED*]
     });
 
     it('Should support simple SQL without arguments', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo'
         })).toEqual(['SELECT * FROM foo', []]);
     });
 
     it('Should support constraint without argument', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 'bar IS NULL'
@@ -58,7 +56,7 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support simple SQL with argument', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', 1]
@@ -67,13 +65,13 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support boolean arguments', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', true]
             ]
         })).toEqual(['SELECT * FROM foo WHERE bar = ?', [true]]);
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', false]
@@ -82,13 +80,13 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support simple SQL with missing argument', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', null]
             ]
         })).toEqual(['SELECT * FROM foo', []]);
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', undefined]
@@ -97,7 +95,7 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support multiple simple constraints', () => {
-        expect(dynsequel({
+        expect(select({
                 sql: 'SELECT * FROM foo',
                 constraints: [
                     ['bar = ?', 1],
@@ -107,7 +105,7 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should drop missing constraints when having multiple constraints', () => {
-        expect(dynsequel({
+        expect(select({
                 sql: 'SELECT * FROM foo',
                 constraints: [
                     ['bar = ?', null],
@@ -116,7 +114,7 @@ describe('dynsequel.ts', () => {
             }
         )).toEqual(['SELECT * FROM foo WHERE baz = ?', [2]]);
 
-        expect(dynsequel({
+        expect(select({
                 sql: 'SELECT * FROM foo',
                 constraints: [
                     ['bar = ?', 1],
@@ -126,7 +124,7 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support simple value mapping out of the box', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', 1, {
@@ -138,11 +136,50 @@ describe('dynsequel.ts', () => {
     });
 
     it('Should support mapping array of values to OR block', () => {
-        expect(dynsequel({
+        expect(select({
             sql: 'SELECT * FROM foo',
             constraints: [
                 ['bar = ?', [1, 2]]
             ]
         })).toEqual(['SELECT * FROM foo WHERE (bar = ? OR bar = ?)', [1, 2]]);
     });
+});
+
+describe('dynsequel/update', () => {
+
+    it('Should support updating without constraints', () => {
+        expect(update({
+            sql: 'UPDATE foo',
+            set: [
+                ['bar = ?', 1]
+            ]
+        })).toEqual(['UPDATE foo SET bar = ?', [1]]);
+    });
+
+    it('Should support updating with constraints', () => {
+        expect(update({
+            sql: 'UPDATE foo',
+            set: [
+                ['bar = ?', 1]
+            ],
+            constraints: [
+                ['foz = ?', 12]
+            ]
+        })).toEqual(['UPDATE foo SET bar = ? WHERE foz = ?', [1, 12]]);
+    });
+
+    // TODO: UPDATE x SET foo = y.bar FROM y WHERE y.baz = 'trick';
+});
+
+describe('dynsequel/insert', () => {
+
+    it('Should support inserting', () => {
+        expect(insert({
+            sql: 'INSERT INTO foo',
+            values: [
+                ['bar', 1]
+            ]
+        })).toEqual(['INSERT INTO foo(bar) VALUES(?)', [1]]);
+    });
+
 });
