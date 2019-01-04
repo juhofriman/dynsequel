@@ -19,7 +19,15 @@ describe('dynsequel/select', () => {
         select({
             sql: 'select * from foo',
             constraints: [
-                ['bar in (select id from baz where class = ?)', 'fozzez']
+                ['bar in ', () => {
+                   return  {
+                        sql: 'select id from barror',
+                        constraints: [
+                            ['baz = ?', 1],
+                            ['bur = ?', 5]
+                        ]
+                    };
+                }]
             ]
         });
 
@@ -142,6 +150,23 @@ describe('dynsequel/select', () => {
                 ['bar = ?', [1, 2]]
             ]
         })).toEqual(['SELECT * FROM foo WHERE (bar = ? OR bar = ?)', [1, 2]]);
+    });
+
+    it('Should support subqueries', () => {
+        expect(select({
+            sql: 'select * from foo',
+            constraints: [
+                ['bar in ', () => {
+                    return  {
+                        sql: 'select id from barror',
+                        constraints: [
+                            ['baz = ?', 1],
+                            ['bur = ?', 5]
+                        ]
+                    };
+                }]
+            ]
+        })).toEqual(['select * from foo WHERE bar in (select id from barror WHERE baz = ? AND bur = ?)', [1, 5]]);
     });
 });
 

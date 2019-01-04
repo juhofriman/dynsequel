@@ -36,7 +36,7 @@ function insertDefaults(params: DynsequelDSLInsert): DynsequelDSLInsert {
     return params;
 }
 
-type Constraint = [string, any, any?] | string;
+type Constraint = [string, (() => DynsequelDSLSelect)] | [string, any, any?] | string;
 
 function filterConstraints(constraints: Constraint[]): Constraint[] {
     return constraints.filter((constraint) => {
@@ -59,7 +59,9 @@ function collectConstrainValues(constraints: Constraint[]): any[] {
                 return acc;
             }
             const [_, value, mapping] = constraint;
-            if(value instanceof Array) {
+            if(value instanceof Function) {
+                acc.push(...select(value())[1]);
+            } else if(value instanceof Array) {
                 acc.push(...value);
             } else if (mapping) {
                 acc.push(mapping[value]);
@@ -79,6 +81,9 @@ function appendConstraintsToSQL(sql: string, constraints: Constraint[]): string 
             return constraint;
         }
         const [clause, value] = constraint;
+        if(value instanceof Function) {
+            return clause + '(' + select(value())[0] + ')';
+        }
         if(value instanceof Array) {
             return '(' + value.map(() => clause).join(' OR ') + ')';
         }
